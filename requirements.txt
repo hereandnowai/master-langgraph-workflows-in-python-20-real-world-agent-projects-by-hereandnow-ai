@@ -1,0 +1,7 @@
+langgraph==0.5.3
+langchain
+pandas
+langchain-google-genai
+langchain_community
+tavily-python
+faiss-cpu
