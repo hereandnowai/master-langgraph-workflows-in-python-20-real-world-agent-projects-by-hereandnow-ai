@@ -1,5 +1,5 @@
 from typing import Annotated, Literal
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 from langchain_tavily import TavilySearch
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -15,10 +15,9 @@ import aioconsole
 # --- Environment and API Key Setup ---
 load_dotenv()
 tavily_api_key = os.getenv("TAVILY_API_KEY")
-google_api_key = os.getenv("GEMINI_API_KEY")
 
-if not tavily_api_key or not google_api_key:
-    raise ValueError("TAVILY_API_KEY and GEMINI_API_KEY must be set in your .env file")
+if not tavily_api_key:
+    raise ValueError("TAVILY_API_KEY must be set in your .env file")
 
 # --- State Definition ---
 class State(TypedDict):
@@ -30,8 +29,6 @@ tools = [search_tool]
 tool_node = ToolNode(tools)
 
 # --- Agent Definition ---
-# This prompt now includes the 'agent_scratchpad' placeholder.
-# This is the critical change that allows the agent to see its own tool use history.
 prompt = ChatPromptTemplate.from_messages(
     [
         (
@@ -44,10 +41,8 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-# This function formats the message history into the 'agent_scratchpad' format.
 def format_to_agent_scratchpad(messages: list[BaseMessage]) -> list[BaseMessage]:
     scratchpad = []
-    # The scratchpad should only contain tool-related messages.
     for msg in messages:
         if isinstance(msg, AIMessage) and msg.tool_calls:
             scratchpad.append(msg)
@@ -55,14 +50,13 @@ def format_to_agent_scratchpad(messages: list[BaseMessage]) -> list[BaseMessage]
             scratchpad.append(msg)
     return scratchpad
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=google_api_key)
+# Use the modern ChatOllama class from the correct package
+llm = ChatOllama(model="llama3.1:8b")
 llm_with_tools = llm.bind_tools(tools)
 
 def agent_node(state: State):
-    # The agent node now formats the history for the scratchpad.
     agent_scratchpad = format_to_agent_scratchpad(state["messages"])
     chain = prompt | llm_with_tools
-    # The 'agent_scratchpad' variable is now correctly populated.
     response = chain.invoke({
         "messages": state["messages"],
         "agent_scratchpad": agent_scratchpad
@@ -95,4 +89,5 @@ async def main():
         print(f"AI: {response['messages'][-1].content}")
 
 if __name__ == "__main__":
+    print("Starting chatbot with local Ollama model. Make sure Ollama is running.")
     asyncio.run(main())

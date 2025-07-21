@@ -1,3 +1,4 @@
-langchain-google-genai
 langgraph
 langchain-tavily
+aioconsole
+langchain-ollama
