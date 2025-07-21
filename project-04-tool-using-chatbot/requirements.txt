@@ -1,4 +1,3 @@
-langgraph==0.5.3
-langchain
-pandas
 langchain-google-genai
+langgraph
+langchain-tavily

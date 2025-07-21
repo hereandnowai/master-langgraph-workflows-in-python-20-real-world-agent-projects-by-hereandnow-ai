@@ -4,7 +4,13 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
-from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from dotenv import load_dotenv
+import os
+import asyncio
+
+load_dotenv
+google_api_key = os.getenv("GEMINI_API_KEY")
 
 # Define the state for our graph
 class State(TypedDict):
@@ -26,9 +32,13 @@ graph.set_entry_point("chatbot")
 graph.set_finish_point("chatbot")
 
 # Compile and run the graph with memory
-memory = SqliteSaver.from_conn_string(":memory:")
-app = graph.compile(checkpointer=memory)
-config = {"configurable": {"thread_id": "1"}}
-app.invoke({"messages": [("human", "My name is John.")]}, config=config)
-response = app.invoke({"messages": [("human", "What is my name?")]}, config=config)
-print(response["messages"][-1].content)
+async def main():
+    async with AsyncSqliteSaver.from_conn_string(":memory:") as memory:
+        app = graph.compile(checkpointer=memory)
+        config = {"configurable": {"thread_id": "1"}}
+        await app.ainvoke({"messages": [("human", "My name is John.")]}, config=config)
+        response = await app.ainvoke({"messages": [("human", "What is my name?")]}, config=config)
+        print(response["messages"][-1].content)
+
+if __name__ == "__main__":
+    asyncio.run(main())
