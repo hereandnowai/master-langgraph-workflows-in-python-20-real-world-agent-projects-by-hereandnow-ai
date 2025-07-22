@@ -29,7 +29,14 @@ graph.add_node("chatbot", chatbot)
 graph.set_entry_point("chatbot")
 graph.set_finish_point("chatbot")
 
-# Compile and run the graph
+# Compile the graph
 app = graph.compile()
-response = app.invoke({"messages": [("human", "Hello!")]})
-print(response["messages"][-1].content)
+
+# Run the graph in a conversational loop
+print("Chatbot started. Type 'quit' to exit.")
+while True:
+    user_input = input("You: ")
+    if user_input.lower() == 'quit':
+        break
+    response = app.invoke({"messages": [("human", user_input)]})
+    print("Chatbot:", response["messages"][-1].content)
