@@ -7,6 +7,10 @@ This project demonstrates how to add memory to a LangGraph agent. The agent can 
 1.  **Install dependencies:**
     ```bash
     pip install -r requirements.txt
+
+        python3 -m .venv venv
+    source venv/bin/activate
+    pip install langchain langchain-community langchain-core langchain-chat llama_index duckduckgo-search langgraph
     ```
 2.  **Run the agent:**
     ```bash

@@ -1,65 +1,98 @@
-import os
-from typing import Annotated, TypedDict
-from dotenv import load_dotenv
+# install the correct search library
+# pip uninstall duckduckgo-search
+# pip install ddgs
 
+import os
+from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage
-from langgraph.graph import StateGraph, END
-from langgraph.graph.message import add_messages
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.types import interrupt
+from langchain_core.tools import tool
+from langchain_community.tools import DuckDuckGoSearchRun
+from langgraph.graph import StateGraph, START, END
+from langgraph.types import interrupt, Command
+from langgraph.checkpoint.memory import MemorySaver
+from typing import TypedDict
 
 load_dotenv()
-KEY = os.getenv("GEMINI_API_KEY")
-if not KEY:
-    raise ValueError("GEMINI_API_KEY missing in .env")
+google_api_key = os.getenv("GEMINI_API_KEY")
+assert google_api_key, "Set GEMINI_API_KEY in .env or shell"
 
-# --- State Definition ---
 class State(TypedDict):
-    messages: Annotated[list, add_messages]
+    question: str
+    duck_snippet: str
+    draft: str
+    approved: bool
 
-# --- Chatbot node: generates draft response ---
-def chatbot(state: State):
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=KEY)
-    draft = llm.invoke(state["messages"])
-    return {"messages": [draft]}
-
-# --- Human review node: asks user to approve/edit ---
-def human_review(state: State):
-    draft = state["messages"][-1].content
-    print("\n--- AI draft ---")
-    print(draft)
-    user_input = interrupt("Please edit or approve the above response:")
-    # Return the human-approved version
-    return {"messages": [{"role": "assistant", "content": user_input["data"]}]}
-
-# --- Build the graph ---
 graph = StateGraph(State)
-graph.add_node("chatbot", chatbot)
-graph.add_node("human_review", human_review)
+search_tool = DuckDuckGoSearchRun()
 
-graph.set_entry_point("chatbot")
-graph.add_edge("chatbot", "human_review")
-graph.set_finish_point("human_review")
+@tool
+def web_search(query: str) -> str:
+    """Search web using DuckDuckGo and return snippet."""
+    return search_tool.invoke(query)
 
-# --- Compile with in-memory memory saver ---
-memory = InMemorySaver()
-app = graph.compile(checkpointer=memory)
+@tool
+def human_review(draft: str) -> bool:
+    """Interrupt and ask for human approval of the draft."""
+    res = interrupt({"draft": draft})
+    return res["data"].strip().lower() in ("yes", "y", "approve")
 
-# --- Terminal Chat Loop ---
-print("🤖 Human-in-the-Loop Chatbot (type 'exit' to quit)")
-session_id = "cli-session"
-while True:
-    user = input("\nYou: ")
-    if user.lower() in ("exit", "quit"):
-        break
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    google_api_key=google_api_key,
+    temperature=0,
+)
 
-    state = {"messages": [HumanMessage(content=user)]}
-    res = app.invoke(
-        {"messages": state["messages"]},
-        config={"configurable": {"thread_id": session_id}}
+def do_search(state: State) -> State:
+    return {"duck_snippet": web_search.invoke(state["question"])}
+
+def draft_answer(state: State) -> State:
+    prompt = (
+        f"Question: {state['question']}\n\n"
+        f"Found info: {state['duck_snippet']}\n\n"
+        "Write a factual draft answer based on the above snippet."
     )
-    final_msg = res["messages"][-1].content
-    print("Bot:", final_msg)
+    resp = llm.invoke(prompt)
+    text = resp.content if hasattr(resp, "content") else resp
+    return {"draft": text}
 
-print("Session ended.")
+def approve_node(state: State) -> State:
+    return {"approved": human_review.invoke(state["draft"])}
+
+def finalize(state: State) -> State:
+    return {"draft": state["draft"] if state["approved"] else "I'll refine and resend shortly."}
+
+graph.add_node("search", do_search)
+graph.add_node("draft", draft_answer)
+graph.add_node("approve", approve_node)
+graph.add_node("final", finalize)
+graph.add_edge(START, "search")
+graph.add_edge("search", "draft")
+graph.add_edge("draft", "approve")
+graph.add_edge("approve", "final")
+graph.add_edge("final", END)
+
+compiled = graph.compile(checkpointer=MemorySaver())
+
+def run_session(question: str, thread: str = "session1"):
+    state = {"question": question, "duck_snippet": "", "draft": "", "approved": False}
+    config = {"configurable": {"thread_id": thread}}
+    stream = compiled.stream(state, config, stream_mode="values")
+    for ev in stream:
+        if ev.get("interrupt"):
+            print("\n🤖 Draft:\n", ev["interrupt"]["data"]["draft"])
+            ans = input("Approve? (yes/no): ")
+            cmd = Command(resume={"data": ans})
+            # ✅ Use proper config here:
+            stream = compiled.stream(cmd, config, stream_mode="values")
+        elif ev.get("values"):
+            print("\n🎉 Final answer:", ev["values"]["draft"])
+
+if __name__ == "__main__":
+    try:
+        import ddgs  # to ensure the correct library is installed
+    except ImportError:
+        print("🔧 Error: please install `ddgs` (pip install ddgs)")
+        exit(1)
+
+    q = input("Ask your question: ")
+    run_session(q)

@@ -4,6 +4,11 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+google_api_key = os.getenv("GEMINI_API_KEY")
 
 # Define the state for our graph
 class State(TypedDict):

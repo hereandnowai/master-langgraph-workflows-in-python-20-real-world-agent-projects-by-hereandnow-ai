@@ -7,6 +7,7 @@ from typing_extensions import TypedDict
 from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
+from langgraph.checkpoint.memory import InMemorySaver
 from dotenv import load_dotenv
 import os
 import asyncio
@@ -82,7 +83,8 @@ graph.set_entry_point("agent")
 graph.add_conditional_edges("agent", should_continue)
 graph.add_edge("tools", "agent")
 
-app = graph.compile()
+memory = InMemorySaver()
+app = graph.compile(checkpointer=memory)
 
 # --- Main Interaction Loop (Asynchronous) ---
 async def main():
@@ -91,7 +93,9 @@ async def main():
         if user_input.lower() in ["quit", "exit"]:
             break
         
-        response = await app.ainvoke({"messages": [("human", user_input)]})
+        response = await app.ainvoke(
+            {"messages": [("human", user_input)]},
+            config={"configurable":{"thread_id": "session1"}})
         print(f"AI: {response['messages'][-1].content}")
 
 if __name__ == "__main__":
