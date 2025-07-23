@@ -1,0 +1,7 @@
+langgraph
+langchain
+langchain-google-genai
+langchain-tavily
+python-wordpress-xmlrpc
+python-dotenv
+Pillow
