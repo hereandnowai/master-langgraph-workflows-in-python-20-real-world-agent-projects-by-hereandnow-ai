@@ -1,9 +1,0 @@
-langgraph
-langchain-tavily
-aioconsole
-langchain-ollama
-langchain
-pandas
-langchain-google-genai
-langchain_community
-tavily-python

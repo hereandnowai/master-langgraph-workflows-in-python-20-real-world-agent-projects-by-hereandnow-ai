@@ -78,7 +78,7 @@ if __name__ == "__main__":
         "topic": random.choice(BLOG_TOPICS),
     }
     
-    print("--- STARTING BLOG WRITING WORKFLOW ---")
+    print("\n--- STARTING BLOG WRITING WORKFLOW ---")
     print(f"Organization: {initial_state['organization_name']}")
     print(f"Topic: {initial_state['topic']}")
     
