@@ -12,9 +12,12 @@ def writing_agent(state):
     Writes an SEO-optimized blog post based on the selected topic.
     """
     print("--- WRITING AGENT ---")
-    selected_topic = state["selected_topic"]
+    research_file = state["research_results"]
     organization_name = state["organization_name"]
     organization_description = state["organization_description"]
+
+    with open(research_file, "r") as f:
+        research_content = f.read()
     
     llm = ChatGoogleGenerativeAI(
         model=model, 
@@ -26,8 +29,8 @@ def writing_agent(state):
     You are an expert SEO content writer for the company: {organization_name}.
     Company Description: {organization_description}.
     
-    Your task is to write a comprehensive, engaging, and SEO-optimized blog post on the following topic:
-    "{selected_topic}"
+    Your task is to write a comprehensive, engaging, and SEO-optimized blog post based on the following research content:
+    {research_content}
     
     Please adhere to the latest SEO best practices for 2025, including:
     - Use the main keyword phrase naturally throughout the article.

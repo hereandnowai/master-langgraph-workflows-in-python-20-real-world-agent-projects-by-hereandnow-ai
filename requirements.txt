@@ -5,3 +5,11 @@ langchain-google-genai
 langchain_community
 tavily-python
 faiss-cpu
+
+langchain-tavily
+python-wordpress-xmlrpc
+python-dotenv
+Pillow
+bs4
+requests
+markdown

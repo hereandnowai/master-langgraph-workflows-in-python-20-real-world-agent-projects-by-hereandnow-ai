@@ -30,7 +30,7 @@ def proofreading_agent(state):
     {blog_post}
     ---
     
-    Return the polished, final version of the blog post.
+    Return the polished, final version of the blog post as a single block of markdown text. Do not include any HTML tags or code blocks.
     """
     
     try:

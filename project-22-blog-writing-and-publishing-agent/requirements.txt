@@ -5,3 +5,7 @@ langchain-tavily
 python-wordpress-xmlrpc
 python-dotenv
 Pillow
+bs4
+requests
+langchain-community
+markdown
