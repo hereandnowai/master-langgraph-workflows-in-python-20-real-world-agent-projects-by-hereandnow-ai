@@ -28,7 +28,12 @@ def research_agent(state):
         except Exception as e:
             print(f"   > Error fetching content from {url}: {e}")
 
-    research_file_path = "project-22-blog-writing-and-publishing-agent/research_results.txt"
+    # Get the directory of the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Go up one level to the project directory
+    project_dir = os.path.dirname(script_dir)
+    # Define the path for the research results file
+    research_file_path = os.path.join(project_dir, "research_results.txt")
     with open(research_file_path, "w") as f:
         f.write(all_content)
 
