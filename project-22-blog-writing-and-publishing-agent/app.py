@@ -47,7 +47,7 @@ if __name__ == "__main__":
         "organization_name": ORGANIZATION_NAME,
         "organization_description": ORGANIZATION_DESCRIPTION,
         "urls": [
-            "https://developers.googleblog.com/en/introducing-opal/"
+            "https://www.anthropic.com/news/model-context-protocol"
         ],
     }
     
